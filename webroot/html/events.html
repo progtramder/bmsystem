@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+    <script src="/js/vue.js"></script>
+    <script src="/js/axios.min.js"></script>
+    <title>管理员</title>
+</head>
+<style type="text/css">
+    .container {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        font-size: 16px;
+    }
+    .event-item {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        text-align: center;
+        height: 4rem;
+        line-height: 4rem;
+        border-color: beige;
+        color: orange;
+        width: 300px;
+        border-style: solid;
+        border-width: 2px;
+        border-radius: 4px;
+        margin-top: 2rem;
+        font-weight: bold;
+        box-sizing: border-box;
+    }
+    .event-icon {
+      width: 1.5rem;
+      height: 1.5rem;
+      margin-right: 5px;
+    }
+    .event-item:hover {
+      opacity: 0.7;
+      cursor: pointer;
+    }
+</style>
+<body>
+    <div class="container" id="app">
+      <div class="event-item" v-for="item in events" @click="handleAmin(item)">
+        <image class="event-icon" src="/image/bm.png" />
+        <div>${item}</div>
+      </div>
+    </div>
+    <script></script>
+</body>
+
+<script>
+
+  new Vue({
+      delimiters: ['${', '}'],
+      el: '#app',
+      data: {
+          events: []
+      },
+      mounted: function() {
+        axios.get(`/get-events`).then((response) => {
+            this.events = response.data.data
+        }).catch(function (error) {
+            console.log(error)
+        })
+      },
+      methods: {
+        handleAmin(event) {
+          window.location.href = `/html/admin.html?event=${escape(event)}`
+        },
+      }
+  })
+</script>
+
+</html>

@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+    <link rel="stylesheet" type="text/css" href="/css/mbxsj.css?v=0.0.1" />
+    <script src="/js/vue.js"></script>
+    <script src="/js/axios.min.js"></script>
+    <title>{{.Event}}</title>
+</head>
+<body>
+    <div class="container" id="app">
+        <image style="width:100%;margin-bottom:2rem;" src="/image/WechatIMG66.jpeg" />
+        <div class="input-wrapper">
+            <input v-bind:disabled="disable" v-model="name" placeholder="姓名" />
+        </div>
+        <select v-bind:disabled="disable" class="selection" v-model="parent">
+            <option disabled value="">请选择身份</option>
+            <option value="爸爸">爸爸</option>
+            <option value="妈妈">妈妈</option>
+            <option value="其他">其他</option>
+        </select>
+        <div class="input-wrapper">
+            <input v-bind:disabled="disable" type="number" v-model="phone" placeholder="手机号码" />
+        </div>
+        <select id="id_category" v-bind:disabled="disable" class="selection" v-model="category">
+            <option disabled value="">请选择听众类型</option>
+            <option value="孩子正值幼升小">孩子正值幼升小</option>
+            <option value="孩子已就读小学">孩子已就读小学</option>
+        </select>
+        <button v-bind:disabled="disable" class="submit" @click="handleSubmit">${status}</button>
+        <div style="height:2rem;"></div>
+    </div>
+    <script>
+        var g_OpenId = {{.OpenId}}
+        var g_Event = {{.Event}}
+    </script>
+    <script src="/js/mbxsj.js?v=Math.random()"></script>
+</body>
+
+</html>

@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+    <link rel="stylesheet" type="text/css" href="/css/mbxsj.css?v=0.0.1" />
+    <link rel="stylesheet" type="text/css" href="/css/admin.css?v=0.0.1" />
+    <script src="/js/vue.js"></script>
+    <script src="/js/axios.min.js"></script>
+    <title>管理员</title>
+</head>
+<body>
+    <div class="container" id="app">
+        <div class="title-event">${event}</div>
+        <button v-bind:disabled="started" v-bind:class="['start', started?'started':'']" @click="handleSubmit">${expired?'报名已结束':(started?'报名已开始...':'启动报名')}</button>
+        <div class="statistics">
+          <div class="report">
+              <div style="color:orange;font-weight: bold;">报名统计</div>
+              <button style="color:orange;font-size:0.8rem;border-color:beige;" @click="handleDetail">查看明细</button>
+          </div>
+          <div class="stat-list" v-for="item in sessions">
+            <div>${item.description}</div>
+            <div>总数：${item.limit }</div>
+            <div>已报：${item.number}</div>
+          </div>
+        </div>
+    </div>
+    <script src="/js/admin.js?v=0.0.5"></script>
+</body>
+</html>
