@@ -204,6 +204,10 @@ func (self *BMEvent) Expired() bool {
 
 func (self *BMEvent) Init(e Event) error {
 
+	if e.Event == "" || e.WebPage == "" || e.Sessions == nil {
+		return errors.New("malformed event")
+	}
+
 	tm, err := parseTime(e.EndTime)
 	if err != nil {
 		return errors.New(fmt.Sprintf("事件结束时间 %s %s", e.EndTime, err.Error()))
@@ -291,6 +295,8 @@ func (self *BMEventList) Reset() error {
 			if j == -1 {
 				bmEvent := &BMEvent{}
 				if err := bmEvent.Init(v); err != nil {
+					//we don't touch the old event if something wrong during reset
+					self.events = oldEvents
 					return err
 				}
 				self.events[i] = bmEvent

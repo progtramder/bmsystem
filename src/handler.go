@@ -181,7 +181,7 @@ func handleReset(w http.ResponseWriter, r *http.Request) {
 
 	err := bmEventList.Reset()
 	if err != nil {
-		log.Println("Fatal error:", err)
+		ColorRed("Fail to reset: " + err.Error())
 		w.WriteHeader(http.StatusInternalServerError)
 	}
 }
