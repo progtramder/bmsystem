@@ -55,7 +55,7 @@ func recoverSession(bmEvent *BMEvent, s int) int {
 	for i := 1; i < len(rows); i++ {
 		row := rows[i]
 		info := bminfo{session: s}
-		openId := row[0]
+		token := row[0]
 		//somehow the column always greater than actual, why?
 		//so we have to check if the column is empty
 		for j := 1; j < len(row); j++ {
@@ -65,8 +65,8 @@ func recoverSession(bmEvent *BMEvent, s int) int {
 				info.form = append(info.form, Pair{key, value})
 			}
 		}
-		if _, ok := bmEvent.bm[openId]; !ok {
-			bmEvent.bm[openId] = info
+		if _, ok := bmEvent.bm[token]; !ok {
+			bmEvent.bm[token] = info
 			total += 1
 		}
 	}
@@ -89,9 +89,10 @@ func recoverEvent(bmEvent *BMEvent) {
 	}
 }
 
-type chanRecover struct{
+type chanRecover struct {
 	*sync.WaitGroup
 }
+
 func (self *chanRecover) handle() {
 	ColorGreen("Start recovering ...")
 	for _, v := range bmEventList.events {

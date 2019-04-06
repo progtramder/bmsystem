@@ -31,15 +31,15 @@ func dbRoutine() {
 }
 
 type chanRegister struct {
-	event  string
-	openId string
-	info   bminfo
+	event string
+	token string
+	info  bminfo
 }
 
 func (self *chanRegister) handle() {
 	bmEvent := bmEventList.GetEvent(self.event)
 	if bmEvent != nil {
-		bmEvent.report.serialize(self.openId, bmEvent.sessions[self.info.session].Desc, self.info)
+		bmEvent.report.serialize(self.token, bmEvent.sessions[self.info.session].Desc, self.info)
 	}
 }
 
@@ -235,10 +235,10 @@ func (self *BMEvent) Start() {
 	self.Unlock()
 }
 
-func (self *BMEvent) serialize(openId string, info bminfo) {
+func (self *BMEvent) serialize(token string, info bminfo) {
 	dbChannel <- &chanRegister{
 		self.name,
-		openId,
+		token,
 		info,
 	}
 }
