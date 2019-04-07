@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"github.com/360EntSecGroup-Skylar/excelize"
+	"os"
 	"unicode/utf8"
 )
 
@@ -63,6 +64,7 @@ func (self *excel) serialize(token, session string, info bminfo) {
 }
 
 func InitReport(eventName string) (*excel, error) {
+	os.Mkdir("report", 0777)
 	filename := fmt.Sprintf(systembasePath+"/report/%s.xlsx", eventName)
 	xlsx, err := excelize.OpenFile(filename)
 	if err != nil {
