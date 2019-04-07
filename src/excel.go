@@ -37,7 +37,7 @@ func (self *excel) serialize(token, session string, info bminfo) {
 		style, _ := self.NewStyle(`{"font":{"bold":true}}`)
 		column := 'A'
 		axis := fmt.Sprintf("%c1", column)
-		self.SetCellValue(sheetName, axis, "OpenId")
+		self.SetCellValue(sheetName, axis, "Token")
 		for _, v := range info.form {
 			column++
 			axis = fmt.Sprintf("%c1", column)
