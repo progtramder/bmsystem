@@ -43,7 +43,7 @@ new Vue({
       },
 
       handleDetail() {
-        window.location.href = `/report/${this.event}.xlsx?param=${new Date().getTime()}`
+        window.location.href = `/report/${this.event}.xlsx`
       }
   }
 })
