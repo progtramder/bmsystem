@@ -76,7 +76,7 @@ func main() {
 		mux := http.ServeMux{}
 		mux.Handle("/", FileServer(systembasePath+"/webroot"))
 		mux.Handle("/report/", http.StripPrefix("/report/", ReportServer(systembasePath+"/report")))
-		mux.HandleFunc("/baoming", handleBM)
+		mux.HandleFunc("/event-profile", handleEventProfile)
 		mux.HandleFunc("/submit-baoming", handleSubmitBM)
 		mux.HandleFunc("/status", handleStatus)
 		mux.HandleFunc("/register-info", handleRegisterInfo)

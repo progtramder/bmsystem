@@ -7,6 +7,7 @@ import (
 	"gopkg.in/yaml.v2"
 	"io/ioutil"
 	"net/http"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -114,7 +115,12 @@ func (self *bminfo) Load(data []byte) {
 			strings.TrimSuffix(strings.TrimPrefix(key, `"`), `"`),
 			strings.TrimSuffix(strings.TrimPrefix(value, `"`), `"`),
 		}
-		self.form = append(self.form, pair)
+		if pair.key == "session" {
+			session, _ := strconv.ParseInt(pair.value, 10, 32)
+			self.session = int(session)
+		} else {
+			self.form = append(self.form, pair)
+		}
 	}
 }
 
@@ -128,7 +134,7 @@ func (self *bminfo) Dump() string {
 		data += fmt.Sprintf(`"%s":"%s"`, v.key, v.value)
 		data += ","
 	}
-	data += fmt.Sprintf(`"session":"%d"`, self.session)
+	data += fmt.Sprintf(`"session":%d`, self.session)
 	data += "}"
 	return data
 }
@@ -147,8 +153,9 @@ type BMEvent struct {
 	started  bool
 	report   *excel
 	name     string
+	poster   string
 	endTime  time.Time
-	webpage  string
+	form     []Component
 	sessions []Session
 	bm       map[string]bminfo
 }
@@ -164,7 +171,7 @@ func (self *BMEvent) put(token string, info bminfo) int {
 			return errRepeat
 		}
 	}
-	if info.session >= len(self.sessions) {
+	if info.session < 0 || info.session >= len(self.sessions) {
 		return errInvalidSession
 	}
 	s := &self.sessions[info.session]
@@ -187,15 +194,21 @@ func (self *BMEvent) has(token string) (bminfo, bool) {
 type Session struct {
 	Desc   string `yaml:"description"`
 	Limit  int    `yaml:"limit"`
-	Extra  bool   `yaml:"extra"`
 	number int
 }
 
+type Component struct {
+	Type  string   `yaml:"type"  json:"type"`
+	Name  string   `yaml:"name"  json:"name"`
+	Value []string `yaml:"value" json:"value"`
+}
+
 type Event struct {
-	Event    string    `yaml:"event"`
-	EndTime  string    `yaml:"endtime"`
-	WebPage  string    `yaml:"webpage"`
-	Sessions []Session `yaml:"sessions"`
+	Event    string      `yaml:"event"`
+	Poster   string      `yaml:"poster"`
+	EndTime  string      `yaml:"endtime"`
+	Form     []Component `yaml:"form"`
+	Sessions []Session   `yaml:"sessions"`
 }
 
 func (self *BMEvent) Expired() bool {
@@ -204,7 +217,7 @@ func (self *BMEvent) Expired() bool {
 
 func (self *BMEvent) Init(e Event) error {
 
-	if e.Event == "" || e.WebPage == "" || e.Sessions == nil {
+	if e.Event == "" || e.Form == nil || e.Sessions == nil {
 		return errors.New("malformed event")
 	}
 
@@ -220,8 +233,9 @@ func (self *BMEvent) Init(e Event) error {
 
 	self.started = false
 	self.name = e.Event
+	self.poster = e.Poster
 	self.endTime = tm
-	self.webpage = e.WebPage
+	self.form = e.Form
 	self.sessions = e.Sessions
 	self.report = report
 	self.bm = map[string]bminfo{}

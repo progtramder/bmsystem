@@ -9,10 +9,9 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
-	"strconv"
 )
 
-func handleBM(w http.ResponseWriter, r *http.Request) {
+func handleEventProfile(w http.ResponseWriter, r *http.Request) {
 	event := r.FormValue("event")
 	bmEvent := bmEventList.GetEvent(event)
 	if bmEvent == nil {
@@ -27,18 +26,22 @@ func handleBM(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	t, err := template.ParseFiles(systembasePath + "/webroot/html/" + bmEvent.webpage)
-	if err != nil {
-		log.Println(err)
-		w.WriteHeader(http.StatusInternalServerError)
-		return
+	poster := ""
+	if bmEvent.poster != "" {
+		poster = fmt.Sprintf("https://%s/image/%s", r.Host, bmEvent.poster)
+	}
+	page := struct {
+		OpenId string      `json:"openid"`
+		Poster string      `json:"poster"`
+		Form   []Component `json:"form"`
+	}{
+		openId,
+		poster,
+		bmEvent.form,
 	}
 
-	htmlInfo := struct {
-		OpenId string
-		Event  string
-	}{openId, event}
-	err = t.Execute(w, htmlInfo)
+	b, _ := json.Marshal(&page)
+	w.Write(b)
 }
 
 func handleSubmitBM(w http.ResponseWriter, r *http.Request) {
@@ -49,18 +52,15 @@ func handleSubmitBM(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	s := r.FormValue("session")
 	openId := r.FormValue("openid")
-	session, _ := strconv.ParseInt(s, 10, 32)
-
-	if openId == "" || session < 0 {
+	if openId == "" {
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
 
 	data, _ := ioutil.ReadAll(r.Body)
 	r.Body.Close()
-	info := bminfo{int(session), nil}
+	info := bminfo{}
 	info.Load(data)
 	errCode := bmEvent.put(openId, info)
 	if errCode == errSuccess {
