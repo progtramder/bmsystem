@@ -1,86 +1,118 @@
-function bmsystem(bmCallback) {
-  new Vue({
-    delimiters: ['${', '}'],
-    el: '#app',
-    data: {
-      session: '',
-      registered: false,
-      started: false,
-      expired: false,
-      sessions: []
-    },
+new Vue({
+  delimiters: ['${', '}'],
+  el: '#app',
+  data: {
+    openId: '',
+    poster: '',
+    form: [],
+    started: false,
+    expired: false,
+    registered: false,
+    sessions: [],
+    userData: {},
+    show: false
+  },
 
-    computed: {
-      disable() {
-        return !this.started || this.expired || this.registered || this.isFull()
-      },
-      status() {
-        if (this.expired) return '报名已结束'
-        if (this.registered) return '已报名'
-        if (!this.started) return '报名尚未开始'
-        if (this.isFull()) return '已报满'
-        return '我要报名'
+  computed: {
+    disable() {
+      return !this.started || this.expired || this.registered || this.isFull()
+    },
+    status() {
+      if (this.expired) return '报名已结束'
+      if (this.registered) return '已报名'
+      if (!this.started) return '报名尚未开始'
+      if (this.isFull()) return '已报满'
+      return '我要报名'
+    }
+  },
+
+  mounted: async function () {
+    try {
+      let res = await axios.get(`/event-profile?event=${g_Event}&code=${g_WXCode}`)
+      let data = res.data
+      this.openId = data.openid
+      this.poster = data.poster
+      this.form = data.form
+      this.show = true //show the submit button
+      this.form.forEach((e) => {
+        if (e.type == 'session') {
+          this.userData.session = ''
+        } else {
+          this.userData[e.name] = ''
+        }
+      })
+
+      await this.fechStatus()
+
+      res = await axios.get(`/register-info?event=${g_Event}&openid=${this.openId}`)
+      data = res.data
+      if (data) {
+        this.userData = data
+        this.registered = true
+      }
+      setInterval(this.fechStatus, 1000)
+    } catch(err) {
+      console.log(err)
+    }
+  },
+
+  methods: {
+    async fechStatus() {
+      try {
+        const res = await axios.get(`/status?event=${g_Event}`)
+        const data = res.data
+        this.started = data.started
+        this.expired = data.expired
+        this.sessions = data.sessions
+        if (data.sessions.length == 1) {
+          this.userData.session = 0
+        }
+      } catch(err) {
+        console.log(err)
       }
     },
 
-    created: function () {
-      bmCallback.init(this)
+    isFull() {
+      for (let i = 0; i < this.sessions.length; i++) {
+        if (this.sessions[i].number < this.sessions[i].limit) {
+          return false
+        }
+      }
+      return true
     },
 
-    mounted: function () {
-      this.fechStatus()
-      axios.get(`/register-info?event=${g_Event}&openid=${g_OpenId}`).then((response) => {
-        const data = response.data
-        if (data) {
-          bmCallback.mount(this, data)
-          this.session = data.session
-          this.registered = true
+    formatAlertString(attr) {
+      const form = this.form
+      for (let i = 0; i < form.length; i++) {
+        const component = form[i]
+        if (attr == 'session' && component.type == 'session') {
+          return '请选择' + component.name
+        } else if (attr == component.name) {
+          if (component.type == 'select') {
+            return '请选择' + component.name 
+          } 
+          return '请输入' + component.name  
         }
-      }).catch(function (error) {
-        console.log(error)
-      })
-      setInterval(this.fechStatus, 1000)
+      }
     },
-    methods: {
-      fechStatus() {
-        axios.get(`/status?event=${g_Event}`).then((response) => {
-          const data = response.data
-          this.started = data.started
-          this.expired = data.expired
-          this.sessions = data.sessions
-          if (data.sessions.length == 1) {
-            this.session = 0
-          }
-        }).catch(function (error) {
-          console.log(error)
-        })
-      },
 
-      isFull() {
-        for (let i = 0; i < this.sessions.length; i++) {
-          if (this.sessions[i].number < this.sessions[i].limit) {
-            return false
-          }
-        }
-        return true
-      },
-
-      handleSubmit() {
-        if (!bmCallback.validation(this)) {
+    handleSubmit() {
+      for (let attr in this.userData) {
+        if (this.userData[attr] === '') {
+          alert(this.formatAlertString(attr))
           return
         }
-        const postData = bmCallback.submit(this)
-        axios.post(`/submit-baoming?event=${g_Event}&openid=${g_OpenId}&session=${this.session}`, postData).then((response) => {
-          const data = response.data
-          if (data.errCode == 0) {
-            this.registered = true
-          }
-          alert(data.errMsg)
-        }).catch(function (error) {
-          alert(error)
-          console.log(error)
-        })
       }
+      axios.post(`/submit-baoming?event=${g_Event}&openid=${this.openId}`, this.userData).then((response) => {
+        const data = response.data
+        if (data.errCode == 0) {
+          this.registered = true
+        }
+        alert(data.errMsg)
+      }).catch(function (error) {
+        alert(error)
+        console.log(error)
+      })
     }
-  })
-}
+  }
+})

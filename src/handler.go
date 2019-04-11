@@ -11,6 +11,29 @@ import (
 	"net/http"
 )
 
+func handleBM(w http.ResponseWriter, r *http.Request) {
+	event := r.FormValue("event")
+	bmEvent := bmEventList.GetEvent(event)
+	if bmEvent == nil {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	code := r.FormValue("code")
+	t, err := template.ParseFiles(systembasePath + "/webroot/html/render.html")
+	if err != nil {
+		log.Println(err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	htmlInfo := struct {
+		WXCode string
+		Event  string
+	}{code, event}
+	err = t.Execute(w, htmlInfo)
+}
+
 func handleEventProfile(w http.ResponseWriter, r *http.Request) {
 	event := r.FormValue("event")
 	bmEvent := bmEventList.GetEvent(event)

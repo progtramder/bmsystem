@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+    <link rel="stylesheet" type="text/css" href="/css/common.css" />
+    <script src="/js/vue.min.js"></script>
+    <script src="/js/axios.min.js"></script>
+    <title>{{.Event}}</title>
+</head>
+<body>
+    <div class="container" id="app">
+        <image v-if="poster" style="width:100%;margin-bottom:2rem;" v-bind:src="poster" />
+        <div class="form-wrap" v-for="component in form">
+            <div v-if="component.type=='text'" class="input-wrapper">
+                <input v-bind:disabled="disable" v-model="userData[component.name]" v-bind:placeholder="component.name" />
+            </div>
+            <div v-if="component.type=='idcard'" class="input-wrapper">
+                <input v-bind:disabled="disable" v-model="userData[component.name]" v-bind:placeholder="component.name" />
+            </div>
+            <div v-if="component.type=='number'" class="input-wrapper">
+                <input type="number" v-bind:disabled="disable" v-model="userData[component.name]" v-bind:placeholder="component.name" />
+            </div>
+            <select v-if="component.type=='select'" v-bind:disabled="disable" class="selection" v-model="userData[component.name]">
+                <option disabled value="">${component.name}</option>
+                <option v-for="opts in component.value" v-bind:value="opts">${opts}</option>
+            </select>
+            <select v-if="component.type=='session'" v-bind:disabled="disable" class="selection" v-model="userData.session">
+                <option disabled value="">${component.name}</option>
+                <option v-bind:disabled="item.limit==item.number" v-for="(item, index) in sessions" v-bind:value="index">${item.description}</option>
+            </select>
+        </div>
+        <button v-if="show" v-bind:disabled="disable" class="submit" @click="handleSubmit">${status}</button>
+        <div style="height:2rem;"></div>
+    </div>
+    <script>
+        var g_WXCode = {{.WXCode}}
+        var g_Event = {{.Event}}
+    </script>
+    <script src="/js/common.js"></script>
+</body>
+
+</html>

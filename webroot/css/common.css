@@ -5,13 +5,22 @@
   justify-content: center;
   font-size: 16px;
 }
-
 .title {
   color: orange;
   margin-bottom: 2rem;
   font-weight: bold;
   text-align: center;
 }
+
+.form-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width:100%;
+  font-size: 16px;
+}
+
 .input-wrapper {
   width: 90%;
   margin-bottom: 3rem;
