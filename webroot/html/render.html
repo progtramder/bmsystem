@@ -11,7 +11,8 @@
 </head>
 <body>
     <div class="container" id="app">
-        <image v-if="poster" style="width:100%;margin-bottom:2rem;" v-bind:src="poster" />
+        <image v-if="poster" style="width:100%" v-bind:src="poster" />
+        <div style="height:3rem;"></div>
         <div class="form-wrap" v-for="component in form">
             <div v-if="component.type=='text'" class="input-wrapper">
                 <input v-bind:disabled="disable" v-model="userData[component.name]" v-bind:placeholder="component.name" />
@@ -32,7 +33,7 @@
             </select>
         </div>
         <button v-if="show" v-bind:disabled="disable" class="submit" @click="handleSubmit">${status}</button>
-        <div style="height:2rem;"></div>
+        <div style="height:3rem;"></div>
     </div>
     <script>
         var g_WXCode = {{.WXCode}}
