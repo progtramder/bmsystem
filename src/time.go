@@ -27,6 +27,6 @@ func parseTime(tm string) (t time.Time, err error) {
 	month, _ := strconv.ParseInt(timeString[1], 10, 32)
 	day, _ := strconv.ParseInt(timeString[2], 10, 32)
 	local := time.Now().Location()
-	t = time.Date(int(year), time.Month(month), int(day), 23, 59, 59, 0, local)
+	t = time.Date(int(year), time.Month(month), int(day), 7, 59, 59, 0, local)
 	return
 }

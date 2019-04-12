@@ -249,6 +249,45 @@ func (self *BMEvent) Start() {
 	self.Unlock()
 }
 
+func (self *BMEvent) Update(e Event) error {
+	if e.Form == nil || e.Sessions == nil {
+		return errors.New("malformed event")
+	}
+
+	tm, err := parseTime(e.EndTime)
+	if err != nil {
+		return errors.New(fmt.Sprintf("事件结束时间 %s %s", e.EndTime, err.Error()))
+	}
+
+	self.Lock()
+	defer self.Unlock()
+
+	//Only poster, endTime and limit attribute of session can be updated
+	self.poster = e.Poster
+	self.endTime = tm
+	oldSessions := self.sessions
+	self.sessions = e.Sessions
+
+	match := func(desc string) int {
+		for _, v := range oldSessions {
+			if v.Desc == desc {
+				return v.number
+			}
+		}
+		return -1
+	}
+
+	//Copy the number attribute from old session
+	for i, v := range self.sessions {
+		number := match(v.Desc)
+		if number != -1 {
+			self.sessions[i].number = number
+		}
+	}
+
+	return nil
+}
+
 func (self *BMEvent) serialize(token string, info bminfo) {
 	dbChannel <- &chanRegister{
 		self.name,
@@ -315,7 +354,12 @@ func (self *BMEventList) Reset() error {
 				}
 				self.events[i] = bmEvent
 			} else {
+				//reuse the old BMEvent object and update from new event if necessary
 				self.events[i] = oldEvents[j]
+				if err := self.events[i].Update(v); err != nil {
+					self.events = oldEvents
+					return err
+				}
 			}
 		}
 	}
