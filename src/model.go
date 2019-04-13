@@ -226,7 +226,7 @@ func (self *BMEvent) Init(e Event) error {
 		return errors.New(fmt.Sprintf("事件结束时间 %s %s", e.EndTime, err.Error()))
 	}
 
-	report, err := InitReport(e.Event)
+	report, err := InitReport(e)
 	if err != nil {
 		return err
 	}

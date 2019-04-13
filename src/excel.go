@@ -30,7 +30,6 @@ func trimSheetName(name string) string {
 
 func (self *excel) serialize(token, session string, info bminfo) {
 	sheetName := trimSheetName(session)
-	index := self.NewSheet(sheetName)
 
 	//make the title of each column
 	if len(self.GetRows(sheetName)) == 0 {
@@ -58,14 +57,12 @@ func (self *excel) serialize(token, session string, info bminfo) {
 		self.SetCellValue(sheetName, axis, v.value)
 	}
 
-	self.SetActiveSheet(index)
-	self.DeleteSheet("Sheet1")
 	self.Save()
 }
 
-func InitReport(eventName string) (*excel, error) {
+func InitReport(e Event) (*excel, error) {
 	os.Mkdir("report", 0777)
-	filename := fmt.Sprintf(systembasePath+"/report/%s.xlsx", eventName)
+	filename := fmt.Sprintf(systembasePath+"/report/%s.xlsx", e.Event)
 	xlsx, err := excelize.OpenFile(filename)
 	if err != nil {
 		xlsx = excelize.NewFile()
@@ -76,5 +73,10 @@ func InitReport(eventName string) (*excel, error) {
 		}
 	}
 
+	for _, v := range e.Sessions {
+		sheetName := trimSheetName(v.Desc)
+		xlsx.NewSheet(sheetName)
+	}
+	xlsx.DeleteSheet("Sheet1")
 	return &excel{xlsx}, nil
 }
