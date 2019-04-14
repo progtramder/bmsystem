@@ -154,7 +154,6 @@ type BMEvent struct {
 	report   *excel
 	name     string
 	poster   string
-	endTime  time.Time
 	form     []Component
 	sessions []Session
 	bm       map[string]bminfo
@@ -192,9 +191,15 @@ func (self *BMEvent) has(token string) (bminfo, bool) {
 }
 
 type Session struct {
-	Desc   string `yaml:"description"`
-	Limit  int    `yaml:"limit"`
-	number int
+	Desc    string `yaml:"description"`
+	Limit   int    `yaml:"limit"`
+	EndTime string `yaml:"endtime"`
+	number  int
+	expire  time.Time
+}
+
+func (self Session) Expired() bool {
+	return time.Now().After(self.expire)
 }
 
 type Component struct {
@@ -206,26 +211,36 @@ type Component struct {
 type Event struct {
 	Event    string      `yaml:"event"`
 	Poster   string      `yaml:"poster"`
-	EndTime  string      `yaml:"endtime"`
-	Form     []Component `yaml:"form"`
 	Sessions []Session   `yaml:"sessions"`
+	Form     []Component `yaml:"form"`
 }
 
-func (self *BMEvent) Expired() bool {
-	return time.Now().After(self.endTime)
-}
-
-func (self *BMEvent) Init(e Event) error {
-
+func (e Event) Compile() error {
 	if e.Event == "" || e.Form == nil || e.Sessions == nil {
 		return errors.New("malformed event")
 	}
 
-	tm, err := parseTime(e.EndTime)
-	if err != nil {
-		return errors.New(fmt.Sprintf("事件结束时间 %s %s", e.EndTime, err.Error()))
+	for i, v := range e.Sessions {
+		tm, err := parseTime(v.EndTime)
+		if err != nil {
+			return errors.New(fmt.Sprintf("session:%s 结束时间 %s %s", v.Desc, v.EndTime, err.Error()))
+		}
+		e.Sessions[i].expire = tm
 	}
 
+	return nil
+}
+
+func (self *BMEvent) Expired() bool {
+	for _, v := range self.sessions {
+		if !v.Expired() {
+			return false
+		}
+	}
+	return true
+}
+
+func (self *BMEvent) Init(e Event) error {
 	report, err := InitReport(e)
 	if err != nil {
 		return err
@@ -234,7 +249,6 @@ func (self *BMEvent) Init(e Event) error {
 	self.started = false
 	self.name = e.Event
 	self.poster = e.Poster
-	self.endTime = tm
 	self.form = e.Form
 	self.sessions = e.Sessions
 	self.report = report
@@ -250,21 +264,24 @@ func (self *BMEvent) Start() {
 }
 
 func (self *BMEvent) Update(e Event) error {
-	if e.Form == nil || e.Sessions == nil {
-		return errors.New("malformed event")
+	//New sessions can only be appended to last one
+	//Old sessions can't be deleted
+	//name-change to old session is disallowed
+	if len(self.sessions) > len(e.Sessions) {
+		return errors.New("short sessions")
 	}
-
-	tm, err := parseTime(e.EndTime)
-	if err != nil {
-		return errors.New(fmt.Sprintf("事件结束时间 %s %s", e.EndTime, err.Error()))
+	for i, v := range self.sessions {
+		if v.Desc != e.Sessions[i].Desc {
+			return errors.New("sessions mismatch")
+		}
 	}
 
 	self.Lock()
 	defer self.Unlock()
 
-	//Only poster, endTime and limit attribute of session can be updated
+	//Only poster and limit, endtime attribute of session can be updated
+	//bm info and number of sessions will be reused
 	self.poster = e.Poster
-	self.endTime = tm
 	oldSessions := self.sessions
 	self.sessions = e.Sessions
 
@@ -315,6 +332,12 @@ func (self *BMEventList) Reset() error {
 	err = yaml.Unmarshal(setting, &eventList)
 	if err != nil {
 		return err
+	}
+
+	for _, v := range eventList.Events {
+		if err := v.Compile(); err != nil {
+			return err
+		}
 	}
 
 	self.Lock()

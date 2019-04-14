@@ -4,8 +4,18 @@ new Vue({
   data: {
       event: '',
       started: false,
-      expired: false,
       sessions: [] 
+  },
+
+  computed: {
+    expired: function() {
+      for (let i = 0; i < this.sessions.length; i++) {
+        if (!this.sessions[i].expired) {
+            return false
+        }
+      }
+      return true
+    }
   },
 
   mounted: function() {
@@ -27,7 +37,6 @@ new Vue({
           axios.get(`/status?event=${this.event}`).then((response) => {
               const data = response.data
               this.started = data.started
-              this.expired = data.expired
               this.sessions = data.sessions
           }).catch(function (error) {
               console.log(error)

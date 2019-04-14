@@ -104,17 +104,16 @@ func handleStatus(w http.ResponseWriter, r *http.Request) {
 	defer bmEvent.RUnlock()
 
 	type _session struct {
-		Desc   string `json:"description"`
-		Limit  int    `json:"limit"`
-		Number int    `json:"number"`
+		Desc    string `json:"description"`
+		Limit   int    `json:"limit"`
+		Number  int    `json:"number"`
+		Expired bool   `json:"expired"`
 	}
 	status := struct {
 		Started  bool       `json:"started"`
-		Expired  bool       `json:"expired"`
 		Sessions []_session `json:"sessions"`
 	}{
 		Started: bmEvent.started,
-		Expired: bmEvent.Expired(),
 	}
 
 	for _, v := range bmEvent.sessions {
@@ -122,6 +121,7 @@ func handleStatus(w http.ResponseWriter, r *http.Request) {
 			v.Desc,
 			v.Limit,
 			v.number,
+			v.Expired(),
 		}
 		status.Sessions = append(status.Sessions, s)
 	}

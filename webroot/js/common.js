@@ -6,7 +6,6 @@ new Vue({
     poster: '',
     form: [],
     started: false,
-    expired: false,
     registered: false,
     sessions: [],
     userData: {},
@@ -15,10 +14,10 @@ new Vue({
 
   computed: {
     disable() {
-      return !this.started || this.expired || this.registered || this.isFull()
+      return !this.started || this.expired() || this.registered || this.isFull()
     },
     status() {
-      if (this.expired) return '报名已结束'
+      if (this.expired()) return '报名已结束'
       if (this.registered) return '已报名'
       if (!this.started) return '报名尚未开始'
       if (this.isFull()) return '已报满'
@@ -62,7 +61,6 @@ new Vue({
         const res = await axios.get(`/status?event=${g_Event}`)
         const data = res.data
         this.started = data.started
-        this.expired = data.expired
         this.sessions = data.sessions
         if (data.sessions.length == 1) {
           this.userData.session = 0
@@ -76,6 +74,15 @@ new Vue({
       for (let i = 0; i < this.sessions.length; i++) {
         if (this.sessions[i].number < this.sessions[i].limit) {
           return false
+        }
+      }
+      return true
+    },
+
+    expired() {
+      for (let i = 0; i < this.sessions.length; i++) {
+        if (!this.sessions[i].expired) {
+            return false
         }
       }
       return true

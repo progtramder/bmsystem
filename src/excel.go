@@ -30,6 +30,10 @@ func trimSheetName(name string) string {
 
 func (self *excel) serialize(token, session string, info bminfo) {
 	sheetName := trimSheetName(session)
+	//Some times the sessions will be upgraded during the event is alive
+	//so we have to create new sheets for new sessions that was not created at
+	//InitReport time, after all NewSheet does not cause side effect for existed sheets
+	self.NewSheet(sheetName)
 
 	//make the title of each column
 	if len(self.GetRows(sheetName)) == 0 {
@@ -73,6 +77,7 @@ func InitReport(e Event) (*excel, error) {
 		}
 	}
 
+	//Create the worksheet for sessions in sequence
 	for _, v := range e.Sessions {
 		sheetName := trimSheetName(v.Desc)
 		xlsx.NewSheet(sheetName)
