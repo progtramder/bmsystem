@@ -265,7 +265,7 @@ func (self *BMEvent) Start() {
 
 func (self *BMEvent) Update(e Event) error {
 	//New sessions can only be appended to last one
-	//Old sessions can't be deleted
+	//Old sessions can't be deleted or be changed with sequence
 	//name-change to old session is disallowed
 	if len(self.sessions) > len(e.Sessions) {
 		return errors.New("short sessions")
