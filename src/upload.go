@@ -72,6 +72,8 @@ func saveUpload(fh *multipart.FileHeader) error {
 		root = "/webroot/css/"
 	case "jpeg", "jpg", "png":
 		root = "/webroot/image/"
+	case "txt":
+		root = "/webroot/"
 	case "yaml":
 		if fileName != "event.yaml" {
 			return errors.New("file name must be event.yaml")
