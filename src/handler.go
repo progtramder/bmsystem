@@ -12,8 +12,13 @@ import (
 )
 
 func handleBM(w http.ResponseWriter, r *http.Request) {
+	s := getSchool(r.FormValue("school"))
+	if s == nil {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
 	event := r.FormValue("event")
-	bmEvent := bmEventList.GetEvent(event)
+	bmEvent := s.GetEventList().GetEvent(event)
 	if bmEvent == nil {
 		w.WriteHeader(http.StatusBadRequest)
 		return
@@ -29,14 +34,20 @@ func handleBM(w http.ResponseWriter, r *http.Request) {
 
 	htmlInfo := struct {
 		WXCode string
+		School string
 		Event  string
-	}{code, event}
+	}{code, s.name, event}
 	err = t.Execute(w, htmlInfo)
 }
 
 func handleEventProfile(w http.ResponseWriter, r *http.Request) {
+	s := getSchool(r.FormValue("school"))
+	if s == nil {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
 	event := r.FormValue("event")
-	bmEvent := bmEventList.GetEvent(event)
+	bmEvent := s.GetEventList().GetEvent(event)
 	if bmEvent == nil {
 		w.WriteHeader(http.StatusBadRequest)
 		return
@@ -68,8 +79,13 @@ func handleEventProfile(w http.ResponseWriter, r *http.Request) {
 }
 
 func handleSubmitBM(w http.ResponseWriter, r *http.Request) {
+	s := getSchool(r.FormValue("school"))
+	if s == nil {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
 	event := r.FormValue("event")
-	bmEvent := bmEventList.GetEvent(event)
+	bmEvent := s.GetEventList().GetEvent(event)
 	if bmEvent == nil {
 		w.WriteHeader(http.StatusBadRequest)
 		return
@@ -87,14 +103,19 @@ func handleSubmitBM(w http.ResponseWriter, r *http.Request) {
 	info.Load(data)
 	errCode := bmEvent.put(openId, info)
 	if errCode == errSuccess {
-		bmEvent.serialize(openId, info)
+		Serialize("", bmEvent.name, openId, info)
 	}
 	w.Write([]byte(fmt.Sprintf(`{"errCode":%d,"errMsg":"%s"}`, errCode, Reason(errCode))))
 }
 
 func handleStatus(w http.ResponseWriter, r *http.Request) {
+	s := getSchool(r.FormValue("school"))
+	if s == nil {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
 	event := r.FormValue("event")
-	bmEvent := bmEventList.GetEvent(event)
+	bmEvent := s.GetEventList().GetEvent(event)
 	if bmEvent == nil {
 		w.WriteHeader(http.StatusBadRequest)
 		return
@@ -131,8 +152,13 @@ func handleStatus(w http.ResponseWriter, r *http.Request) {
 }
 
 func handleRegisterInfo(w http.ResponseWriter, r *http.Request) {
+	s := getSchool(r.FormValue("school"))
+	if s == nil {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
 	event := r.FormValue("event")
-	bmEvent := bmEventList.GetEvent(event)
+	bmEvent := s.GetEventList().GetEvent(event)
 	if bmEvent == nil {
 		w.WriteHeader(http.StatusBadRequest)
 		return
@@ -178,13 +204,18 @@ func handleAdmin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	t.Execute(w, nil)
+	t.Execute(w, "领英系统")
 }
 
 // Admin handlers
 func handleStartBaoming(w http.ResponseWriter, r *http.Request) {
+	s := getSchool(r.FormValue("school"))
+	if s == nil {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
 	event := r.FormValue("event")
-	bmEvent := bmEventList.GetEvent(event)
+	bmEvent := s.GetEventList().GetEvent(event)
 	if bmEvent == nil {
 		w.WriteHeader(http.StatusBadRequest)
 		return
@@ -202,7 +233,13 @@ func handleReset(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err := bmEventList.Reset()
+	s := getSchool(r.FormValue("school"))
+	if s == nil {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+	bmEventList := s.GetEventList()
+	err := bmEventList.Reset(s.name)
 	if err != nil {
 		ColorRed("Fail to reset: " + err.Error())
 		w.WriteHeader(http.StatusInternalServerError)
@@ -251,11 +288,17 @@ func handleDevelop(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func handlGetEvents(w http.ResponseWriter, _ *http.Request) {
+func handlGetEvents(w http.ResponseWriter, r *http.Request) {
 	events := struct {
 		Data []string `json:"data"`
 	}{}
 
+	s := getSchool(r.FormValue("school"))
+	if s == nil {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+	bmEventList := s.GetEventList()
 	bmEventList.RLock()
 	defer bmEventList.RUnlock()
 	for _, v := range bmEventList.events {

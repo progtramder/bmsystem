@@ -32,12 +32,15 @@ func dbRoutine() {
 }
 
 type chanRegister struct {
-	event string
-	token string
-	info  bminfo
+	school string
+	event  string
+	token  string
+	info   bminfo
 }
 
 func (self *chanRegister) handle() {
+	s := getSchool(self.school)
+	bmEventList := s.GetEventList()
 	bmEvent := bmEventList.GetEvent(self.event)
 	if bmEvent != nil {
 		bmEvent.report.serialize(self.token, bmEvent.sessions[self.info.session].Desc, self.info)
@@ -240,8 +243,8 @@ func (self *BMEvent) Expired() bool {
 	return true
 }
 
-func (self *BMEvent) Init(e Event) error {
-	report, err := InitReport(e)
+func (self *BMEvent) Init(school string, e Event) error {
+	report, err := InitReport(school, e)
 	if err != nil {
 		return err
 	}
@@ -305,20 +308,12 @@ func (self *BMEvent) Update(e Event) error {
 	return nil
 }
 
-func (self *BMEvent) serialize(token string, info bminfo) {
-	dbChannel <- &chanRegister{
-		self.name,
-		token,
-		info,
-	}
-}
-
 type BMEventList struct {
 	sync.RWMutex
 	events []*BMEvent
 }
 
-func (self *BMEventList) Reset() error {
+func (self *BMEventList) Reset(school string) error {
 	path := systembasePath + "/event.yaml"
 	setting, err := ioutil.ReadFile(path)
 	if err != nil {
@@ -349,7 +344,7 @@ func (self *BMEventList) Reset() error {
 		//cold reset
 		for i := range self.events {
 			bmEvent := &BMEvent{}
-			if err := bmEvent.Init(eventList.Events[i]); err != nil {
+			if err := bmEvent.Init(school, eventList.Events[i]); err != nil {
 				return err
 			}
 			self.events[i] = bmEvent
@@ -370,7 +365,7 @@ func (self *BMEventList) Reset() error {
 			j := match(v.Event)
 			if j == -1 {
 				bmEvent := &BMEvent{}
-				if err := bmEvent.Init(v); err != nil {
+				if err := bmEvent.Init(school, v); err != nil {
 					//we don't touch the old event if something wrong during reset
 					self.events = oldEvents
 					return err
@@ -402,4 +397,52 @@ func (self *BMEventList) GetEvent(name string) *BMEvent {
 	return nil
 }
 
-var bmEventList = &BMEventList{}
+type school struct {
+	name        string
+	bmEventList *BMEventList
+}
+
+func (s *school) GetEventList() *BMEventList {
+	return s.bmEventList
+}
+
+var mutexSchool sync.RWMutex
+var schools = map[string]*school{}
+func getSchool(name string) *school {
+	if name == "" {
+		return nil
+	}
+
+	mutexSchool.RLock()
+	s := schools[name]
+	mutexSchool.RUnlock()
+	if s != nil {
+		return s
+	}
+
+	//在大多数情况下程序不会执行到这里，只有极端情况下2个以上协程
+	//走到这里并且只有一个会抢到写锁并且创建school对象，所以其余的协程
+	//被唤醒后需要检查是否school对象是否已经被创建
+	mutexSchool.Lock()
+	defer mutexSchool.Unlock()
+	if s = schools[name]; s != nil {
+		return s
+	}
+	s = &school{name: name, bmEventList: &BMEventList{}}
+	err := s.bmEventList.Reset(name)
+	if err != nil {
+		ColorRed(fmt.Sprintf("Initialize %s error: %s", name, err.Error()))
+		return nil
+	}
+	schools[name] = s
+	return s
+}
+
+func Serialize(school, event, token string, info bminfo) {
+	dbChannel <- &chanRegister{
+		school,
+		event,
+		token,
+		info,
+	}
+}

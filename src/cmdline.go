@@ -95,9 +95,13 @@ type chanRecover struct {
 
 func (self *chanRecover) handle() {
 	ColorGreen("Start recovering ...")
-	for _, v := range bmEventList.events {
-		ColorGreen("Event: " + v.name)
-		recoverEvent(v)
+	for _, s := range schools {
+		ColorGreen(fmt.Sprintf("School: %s", s.name))
+		bmEventList := s.GetEventList()
+		for _, v := range bmEventList.events {
+			ColorGreen("Event: " + v.name)
+			recoverEvent(v)
+		}
 	}
 	ColorGreen("Done.")
 	self.Done()

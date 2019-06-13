@@ -25,11 +25,6 @@ func main() {
 		log.Fatal(err)
 	}
 
-	err = bmEventList.Reset()
-	if err != nil {
-		log.Fatal(err)
-	}
-
 	wg := sync.WaitGroup{}
 	wg.Add(1)
 

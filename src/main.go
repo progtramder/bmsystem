@@ -27,11 +27,6 @@ func main() {
 		log.Fatal(err)
 	}
 
-	err = bmEventList.Reset()
-	if err != nil {
-		log.Fatal(err)
-	}
-
 	//Starting http router, routing to acme challenge server and app iis
 	go func() {
 		fmt.Println("Http router start listening on port:81 ...")

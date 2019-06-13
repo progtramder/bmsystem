@@ -54,7 +54,7 @@
 </body>
 
 <script>
-
+  var g_School = {{.}}
   new Vue({
       delimiters: ['${', '}'],
       el: '#app',
@@ -62,16 +62,18 @@
           events: []
       },
       mounted: function() {
-        axios.get(`/get-events`).then((response) => {
+        const title = document.getElementsByTagName("title")[0]
+        title.innerText = g_School
+        axios.get(`/get-events?school=${g_School}`).then((response) => {
             this.events = response.data.data
         }).catch(function (error) {
             console.log(error)
         })
       },
       methods: {
-        handleAmin(event) {
-          window.location.href = `/html/admin.html?event=${escape(event)}`
-        },
+          handleAmin(event) {
+              window.location.href = `/html/admin.html?school=${escape(g_School)}&event=${escape(event)}`
+          },
       }
   })
 </script>

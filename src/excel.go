@@ -64,9 +64,10 @@ func (self *excel) serialize(token, session string, info bminfo) {
 	self.Save()
 }
 
-func InitReport(e Event) (*excel, error) {
-	os.Mkdir("report", 0777)
-	filename := fmt.Sprintf(systembasePath+"/report/%s.xlsx", e.Event)
+func InitReport(school string, e Event) (*excel, error) {
+	path := fmt.Sprintf(systembasePath+"/report/%s", school)
+	os.MkdirAll(path, 0777)
+	filename := fmt.Sprintf(path+"/%s.xlsx", e.Event)
 	xlsx, err := excelize.OpenFile(filename)
 	if err != nil {
 		xlsx = excelize.NewFile()
