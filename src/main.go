@@ -27,6 +27,11 @@ func main() {
 		log.Fatal(err)
 	}
 
+	err = bmEventList.Reset()
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	//Starting http router, routing to acme challenge server and app iis
 	go func() {
 		fmt.Println("Http router start listening on port:81 ...")
@@ -79,6 +84,7 @@ func main() {
 		mux.HandleFunc("/start-baoming", handleStartBaoming)
 		mux.HandleFunc("/admin", handleAdmin)
 		mux.HandleFunc("/develop", handleDevelop)
+		mux.HandleFunc("/save-album", handleSaveAlbum)
 		mux.HandleFunc("/reset", handleReset)
 		mux.HandleFunc("/get-events", handlGetEvents)
 		tlsSrv := &http.Server{

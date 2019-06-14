@@ -2,7 +2,6 @@ new Vue({
   delimiters: ['${', '}'],
   el: '#app',
   data: {
-      school: '',
       event: '',
       started: false,
       sessions: [] 
@@ -20,10 +19,7 @@ new Vue({
   },
 
   mounted: function() {
-      this.school = this.getQueryString("school")
       this.event = this.getQueryString("event")
-      const title = document.getElementsByTagName("title")[0]
-      title.innerText = this.school
       this.fechStatus()
       setInterval(this.fechStatus, 1000)
   },
@@ -38,7 +34,7 @@ new Vue({
       },
 
       fechStatus() {
-          axios.get(`/status?school=${this.school}&event=${this.event}`).then((response) => {
+          axios.get(`/status?event=${this.event}`).then((response) => {
               const data = response.data
               this.started = data.started
               this.sessions = data.sessions
@@ -48,7 +44,7 @@ new Vue({
       },
       
       handleSubmit() {
-          axios.get(`/start-baoming?school=${this.school}&event=${this.event}`).then((response) => {
+          axios.get(`/start-baoming?event=${this.event}`).then((response) => {
               this.started = true
           }).catch(function (error) {
               console.log(error)

@@ -27,7 +27,7 @@ new Vue({
 
   mounted: async function () {
     try {
-      let res = await axios.get(`/event-profile?school=${g_School}&event=${g_Event}&code=${g_WXCode}`)
+      let res = await axios.get(`/event-profile?event=${g_Event}&code=${g_WXCode}`)
       let data = res.data
       this.openId = data.openid
       this.poster = data.poster
@@ -43,7 +43,7 @@ new Vue({
 
       await this.fechStatus()
 
-      res = await axios.get(`/register-info?school=${g_School}&event=${g_Event}&openid=${this.openId}`)
+      res = await axios.get(`/register-info?event=${g_Event}&openid=${this.openId}`)
       data = res.data
       if (data) {
         this.userData = data
@@ -58,7 +58,7 @@ new Vue({
   methods: {
     async fechStatus() {
       try {
-        const res = await axios.get(`/status?school=${g_School}&event=${g_Event}`)
+        const res = await axios.get(`/status?event=${g_Event}`)
         const data = res.data
         this.started = data.started
         this.sessions = data.sessions
@@ -110,7 +110,7 @@ new Vue({
           return
         }
       }
-      axios.post(`/submit-baoming?school=${g_School}&event=${g_Event}&openid=${this.openId}`, this.userData).then((response) => {
+      axios.post(`/submit-baoming?event=${g_Event}&openid=${this.openId}`, this.userData).then((response) => {
         const data = response.data
         if (data.errCode == 0) {
           this.registered = true

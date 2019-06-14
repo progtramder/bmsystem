@@ -98,3 +98,34 @@ func saveUpload(fh *multipart.FileHeader) error {
 	f.Truncate(n)
 	return err
 }
+
+func saveToAlbum(fh *multipart.FileHeader) error {
+	fileName := filepath.Base(fh.Filename)
+	s := strings.Split(fileName, ".")
+	if len(s) == 0 {
+		return errors.New("unknown file type of " + fileName)
+	}
+	suffix := s[len(s)-1]
+	var root string
+	switch strings.ToLower(suffix) {
+	case "jpeg", "jpg", "png", "mp4":
+		root = "/webroot/album/"
+	default:
+		return errors.New("unsupported file type")
+	}
+
+	file, err := fh.Open()
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+	f, err := os.OpenFile(systembasePath+root+fileName, os.O_WRONLY|os.O_CREATE, 0666)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+	n, err := io.Copy(f, file)
+	//if the size of new file is less than the existed file, truncate is must,
+	f.Truncate(n)
+	return err
+}

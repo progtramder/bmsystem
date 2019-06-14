@@ -25,6 +25,11 @@ func main() {
 		log.Fatal(err)
 	}
 
+	err = bmEventList.Reset()
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	wg := sync.WaitGroup{}
 	wg.Add(1)
 
@@ -41,6 +46,7 @@ func main() {
 		mux.HandleFunc("/start-baoming", handleStartBaoming)
 		mux.HandleFunc("/admin", handleAdmin)
 		mux.HandleFunc("/develop", handleDevelop)
+		mux.HandleFunc("/save-album", handleSaveAlbum)
 		mux.HandleFunc("/reset", handleReset)
 		mux.HandleFunc("/get-events", handlGetEvents)
 		srv := &http.Server{

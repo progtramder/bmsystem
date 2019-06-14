@@ -5,20 +5,64 @@ import (
 	"net/http/httputil"
 	"net/url"
 	"strings"
+	"sync"
 )
 
+var challengeProxy *proxy
+var proxies []*proxy
+
+const maxProxies = 100
+
+func init() {
+	remote, _ := url.Parse("http://localhost:8080")
+	challengeProxy =  NewProxy(remote)
+
+	remote, _ = url.Parse("http://localhost:82")
+	proxies = make([]*proxy, maxProxies)
+	for i := range proxies {
+		proxies[i] = NewProxy(remote)
+	}
+}
+
 type router struct {
+	sync.Mutex
+	iProxy int
+}
+
+func (r *router) getProxy() *proxy {
+	r.Lock()
+	defer r.Unlock()
+
+	if r.iProxy >= maxProxies {
+		r.iProxy = 0
+	}
+	rp := proxies[r.iProxy]
+	r.iProxy++
+	return rp
+}
+
+type proxy struct {
+	*httputil.ReverseProxy
+	Host string
+}
+
+func NewProxy(target *url.URL) *proxy {
+	rp := httputil.NewSingleHostReverseProxy(target)
+	return &proxy{
+		rp,
+		target.Host,
+	}
 }
 
 func (this *router) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	path := r.URL.Path
-	urlString := "http://localhost:82"
+	var rp *proxy
 	if strings.Contains(path, "/.well-known/acme-challenge") {
-		urlString = "http://localhost:8080"
+		rp = challengeProxy
+	} else {
+		rp = this.getProxy()
 	}
 
-	remote, _ := url.Parse(urlString)
-	proxy := httputil.NewSingleHostReverseProxy(remote)
-	r.Host = remote.Host
-	proxy.ServeHTTP(w, r)
+	r.Host = rp.Host
+	rp.ServeHTTP(w, r)
 }

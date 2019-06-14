@@ -9,16 +9,14 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+	"path/filepath"
+	"strconv"
+	"time"
 )
 
 func handleBM(w http.ResponseWriter, r *http.Request) {
-	s := getSchool(r.FormValue("school"))
-	if s == nil {
-		w.WriteHeader(http.StatusBadRequest)
-		return
-	}
 	event := r.FormValue("event")
-	bmEvent := s.GetEventList().GetEvent(event)
+	bmEvent := bmEventList.GetEvent(event)
 	if bmEvent == nil {
 		w.WriteHeader(http.StatusBadRequest)
 		return
@@ -34,20 +32,14 @@ func handleBM(w http.ResponseWriter, r *http.Request) {
 
 	htmlInfo := struct {
 		WXCode string
-		School string
 		Event  string
-	}{code, s.name, event}
+	}{code, event}
 	err = t.Execute(w, htmlInfo)
 }
 
 func handleEventProfile(w http.ResponseWriter, r *http.Request) {
-	s := getSchool(r.FormValue("school"))
-	if s == nil {
-		w.WriteHeader(http.StatusBadRequest)
-		return
-	}
 	event := r.FormValue("event")
-	bmEvent := s.GetEventList().GetEvent(event)
+	bmEvent := bmEventList.GetEvent(event)
 	if bmEvent == nil {
 		w.WriteHeader(http.StatusBadRequest)
 		return
@@ -79,13 +71,8 @@ func handleEventProfile(w http.ResponseWriter, r *http.Request) {
 }
 
 func handleSubmitBM(w http.ResponseWriter, r *http.Request) {
-	s := getSchool(r.FormValue("school"))
-	if s == nil {
-		w.WriteHeader(http.StatusBadRequest)
-		return
-	}
 	event := r.FormValue("event")
-	bmEvent := s.GetEventList().GetEvent(event)
+	bmEvent := bmEventList.GetEvent(event)
 	if bmEvent == nil {
 		w.WriteHeader(http.StatusBadRequest)
 		return
@@ -103,19 +90,14 @@ func handleSubmitBM(w http.ResponseWriter, r *http.Request) {
 	info.Load(data)
 	errCode := bmEvent.put(openId, info)
 	if errCode == errSuccess {
-		Serialize("", bmEvent.name, openId, info)
+		bmEvent.serialize(openId, info)
 	}
 	w.Write([]byte(fmt.Sprintf(`{"errCode":%d,"errMsg":"%s"}`, errCode, Reason(errCode))))
 }
 
 func handleStatus(w http.ResponseWriter, r *http.Request) {
-	s := getSchool(r.FormValue("school"))
-	if s == nil {
-		w.WriteHeader(http.StatusBadRequest)
-		return
-	}
 	event := r.FormValue("event")
-	bmEvent := s.GetEventList().GetEvent(event)
+	bmEvent := bmEventList.GetEvent(event)
 	if bmEvent == nil {
 		w.WriteHeader(http.StatusBadRequest)
 		return
@@ -152,13 +134,8 @@ func handleStatus(w http.ResponseWriter, r *http.Request) {
 }
 
 func handleRegisterInfo(w http.ResponseWriter, r *http.Request) {
-	s := getSchool(r.FormValue("school"))
-	if s == nil {
-		w.WriteHeader(http.StatusBadRequest)
-		return
-	}
 	event := r.FormValue("event")
-	bmEvent := s.GetEventList().GetEvent(event)
+	bmEvent := bmEventList.GetEvent(event)
 	if bmEvent == nil {
 		w.WriteHeader(http.StatusBadRequest)
 		return
@@ -204,18 +181,13 @@ func handleAdmin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	t.Execute(w, "领英系统")
+	t.Execute(w, nil)
 }
 
 // Admin handlers
 func handleStartBaoming(w http.ResponseWriter, r *http.Request) {
-	s := getSchool(r.FormValue("school"))
-	if s == nil {
-		w.WriteHeader(http.StatusBadRequest)
-		return
-	}
 	event := r.FormValue("event")
-	bmEvent := s.GetEventList().GetEvent(event)
+	bmEvent := bmEventList.GetEvent(event)
 	if bmEvent == nil {
 		w.WriteHeader(http.StatusBadRequest)
 		return
@@ -233,13 +205,7 @@ func handleReset(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	s := getSchool(r.FormValue("school"))
-	if s == nil {
-		w.WriteHeader(http.StatusBadRequest)
-		return
-	}
-	bmEventList := s.GetEventList()
-	err := bmEventList.Reset(s.name)
+	err := bmEventList.Reset()
 	if err != nil {
 		ColorRed("Fail to reset: " + err.Error())
 		w.WriteHeader(http.StatusInternalServerError)
@@ -288,17 +254,51 @@ func handleDevelop(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func handlGetEvents(w http.ResponseWriter, r *http.Request) {
+func handleSaveAlbum(w http.ResponseWriter, r *http.Request) {
+	if r.Method == "POST" {
+		token := r.FormValue("token")
+		if token == "" || !tokenPool.get(token) {
+			w.WriteHeader(http.StatusUnauthorized)
+			return
+		}
+		_, _, err := r.FormFile("save-album")
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			w.Write([]byte(fmt.Sprintf("上传失败 : %v", err)))
+			return
+		}
+
+		fhs := r.MultipartForm.File["save-album"]
+		fh := fhs[0]
+		fileName := filepath.Base(fh.Filename)
+		if err := saveToAlbum(fh); err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			w.Write([]byte( fmt.Sprintf("上传失败 : %v", err)))
+			return
+		}
+		w.Write([]byte("album/" + fileName))
+
+	} else if r.Method == "GET" {
+		code := r.FormValue("code")
+		openId := GetOpenId(code)
+		if openId == "" {
+			w.WriteHeader(http.StatusUnauthorized)
+			return
+		}
+
+		h := md5.New()
+		io.WriteString(h, strconv.FormatInt(time.Now().Unix(), 10))
+		token := fmt.Sprintf("%x", h.Sum(nil))
+		tokenPool.put(token)
+		w.Write([]byte(fmt.Sprintf(`{"token":"%s"}`, token)))
+	}
+}
+
+func handlGetEvents(w http.ResponseWriter, _ *http.Request) {
 	events := struct {
 		Data []string `json:"data"`
 	}{}
 
-	s := getSchool(r.FormValue("school"))
-	if s == nil {
-		w.WriteHeader(http.StatusBadRequest)
-		return
-	}
-	bmEventList := s.GetEventList()
 	bmEventList.RLock()
 	defer bmEventList.RUnlock()
 	for _, v := range bmEventList.events {
