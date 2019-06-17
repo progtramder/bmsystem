@@ -36,14 +36,20 @@ func (t *tokens) get(token string) bool {
 
 var tokenPool = tokens{tokens: map[string]bool{}}
 
+func NewToken() string {
+	h := md5.New()
+	io.WriteString(h, strconv.FormatInt(time.Now().Unix(), 10))
+	token := fmt.Sprintf("%x", h.Sum(nil))
+	return token
+}
+
 func developResponse(res http.ResponseWriter, msg string) {
 	resp := struct {
 		Token string
 		Msg   string
 	}{}
-	h := md5.New()
-	io.WriteString(h, strconv.FormatInt(time.Now().Unix(), 10))
-	token := fmt.Sprintf("%x", h.Sum(nil))
+
+	token := NewToken()
 	t, err := template.ParseFiles(systembasePath + "/webroot/html/upload.html")
 	if err != nil {
 		panic(err)
@@ -53,6 +59,26 @@ func developResponse(res http.ResponseWriter, msg string) {
 	resp.Msg = msg
 	tokenPool.put(token)
 	t.Execute(res, resp)
+}
+
+func savePoster(fh *multipart.FileHeader) error {
+	fileName := filepath.Base(fh.Filename)
+	root := "/webroot/image/"
+
+	file, err := fh.Open()
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+	f, err := os.OpenFile(systembasePath+root+fileName, os.O_WRONLY|os.O_CREATE, 0666)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+	n, err := io.Copy(f, file)
+	//if the size of new file is less than the existed file, truncate is must,
+	f.Truncate(n)
+	return err
 }
 
 func saveUpload(fh *multipart.FileHeader) error {

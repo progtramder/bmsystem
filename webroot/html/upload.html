@@ -2,7 +2,6 @@
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
-        <script src="/js/axios.min.js"></script>
         <title>开发者管理</title>
     </head>
     <style type="text/css">
@@ -30,34 +29,7 @@
             border-style: solid;
             border-width: 1px;
         }
-        .reset {
-            margin-top: 3rem;
-            height: 2rem;
-            width: 320px;
-            display: flex;
-            flex-direction: row;
-            justify-content: center;
-            align-items: center;
-            border-style: solid;
-            border-width: 2px;
-            border-color: beige;
-            border-radius: 4px;
-            color: orange;
-            font-size: 16px;
-            font-weight: bold;
-            box-sizing: border-box;
-            }
     </style>
-    <script>
-        var token = {{.Token}}
-        function handleReset() {
-            axios.get(`/reset?token=${token}`).then((response) => {
-                alert('重启成功')
-            }).catch(function (error) {
-                alert(error)
-            })
-        }
-    </script>
     <body>
         <div class="container">
             <form enctype="multipart/form-data" action="/develop" method="post">
@@ -66,7 +38,6 @@
                 <br><br>              
                 <input class="submit" type="submit" value="上传文件" /> {{.Msg}}
             </form>
-        <button class="reset" onclick="handleReset()">Reset</button>
         </div>
     </body>
 </html>

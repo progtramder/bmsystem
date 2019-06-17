@@ -28,10 +28,7 @@ func ReportServer(dir string) http.Handler {
 }
 
 func (self reportHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	if !checkAuth(r) {
-		w.WriteHeader(http.StatusForbidden)
-		return
-	}
-
 	http.FileServer(http.Dir(self)).ServeHTTP(w, r)
 }
+
+

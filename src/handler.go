@@ -10,8 +10,6 @@ import (
 	"log"
 	"net/http"
 	"path/filepath"
-	"strconv"
-	"time"
 )
 
 func handleBM(w http.ResponseWriter, r *http.Request) {
@@ -167,25 +165,15 @@ func checkAuth(r *http.Request) bool {
 	return false
 }
 
-func handleAdmin(w http.ResponseWriter, r *http.Request) {
-	adminpage := systembasePath + "/webroot/html/login.html"
-
-	if checkAuth(r) {
-		adminpage = systembasePath + "/webroot/html/events.html"
-	}
-
-	t, err := template.ParseFiles(adminpage)
-	if err != nil {
-		log.Println(err)
-		w.WriteHeader(http.StatusInternalServerError)
+// Admin handlers
+func handleStartBaoming(w http.ResponseWriter, r *http.Request) {
+	code := r.FormValue("code")
+	openId := GetOpenId(code)
+	if openId == "" {
+		w.WriteHeader(http.StatusUnauthorized)
 		return
 	}
 
-	t.Execute(w, nil)
-}
-
-// Admin handlers
-func handleStartBaoming(w http.ResponseWriter, r *http.Request) {
 	event := r.FormValue("event")
 	bmEvent := bmEventList.GetEvent(event)
 	if bmEvent == nil {
@@ -193,22 +181,141 @@ func handleStartBaoming(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if checkAuth(r) {
-		bmEvent.Start()
-	}
+	bmEvent.Start()
 }
 
-func handleReset(w http.ResponseWriter, r *http.Request) {
-	token := r.FormValue("token")
-	if token == "" || !tokenPool.get(token) {
+func handleAddEvent(w http.ResponseWriter, r *http.Request) {
+	code := r.FormValue("code")
+	openId := GetOpenId(code)
+	if openId == "" {
 		w.WriteHeader(http.StatusUnauthorized)
 		return
 	}
 
-	err := bmEventList.Reset()
+	data, _ := ioutil.ReadAll(r.Body)
+	r.Body.Close()
+	event := Event{}
+	err := json.Unmarshal(data, &event)
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	eventList := EventList{}
+	err = LoadEventList(&eventList)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	//event name conflict check
+	for _, v := range eventList.Events {
+		if v.Event == event.Event {
+			w.WriteHeader(http.StatusConflict)
+			return
+		}
+	}
+	//Add new event object
+	eventList.Events = append(eventList.Events, event)
+	err = SaveEventList(eventList)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	//重新加载新的event配置文件
+	err = bmEventList.Reset()
 	if err != nil {
 		ColorRed("Fail to reset: " + err.Error())
+		w.WriteHeader(http.StatusNotAcceptable)
+	}
+}
+
+func handleEditEvent(w http.ResponseWriter, r *http.Request) {
+	code := r.FormValue("code")
+	openId := GetOpenId(code)
+	if openId == "" {
+		w.WriteHeader(http.StatusUnauthorized)
+		return
+	}
+
+	data, _ := ioutil.ReadAll(r.Body)
+	r.Body.Close()
+	event := Event{}
+	err := json.Unmarshal(data, &event)
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	eventList := EventList{}
+	err = LoadEventList(&eventList)
+	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+
+	//update event object
+	for i, v := range eventList.Events {
+		if v.Event == event.Event {
+			eventList.Events[i] = event
+			break
+		}
+	}
+	err = SaveEventList(eventList)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	//重新加载新的event配置文件
+	err = bmEventList.Reset()
+	if err != nil {
+		ColorRed("Fail to reset: " + err.Error())
+		w.WriteHeader(http.StatusNotAcceptable)
+	}
+}
+
+func handleRemoveEvent(w http.ResponseWriter, r *http.Request) {
+	code := r.FormValue("code")
+	openId := GetOpenId(code)
+	if openId == "" {
+		w.WriteHeader(http.StatusUnauthorized)
+		return
+	}
+
+	event := r.FormValue("event")
+	bmEvent := bmEventList.GetEvent(event)
+	if bmEvent == nil {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	eventList := EventList{}
+	err := LoadEventList(&eventList)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	//Remove the target event
+	eventListTemp := EventList{}
+	for _, v := range eventList.Events {
+		if v.Event != event {
+			eventListTemp.Events = append(eventListTemp.Events, v)
+		}
+	}
+
+	err = SaveEventList(eventListTemp)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	err = bmEventList.Reset()
+	if err != nil {
+		ColorRed("Fail to reset: " + err.Error())
+		w.WriteHeader(http.StatusNotAcceptable)
 	}
 }
 
@@ -286,11 +393,36 @@ func handleSaveAlbum(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		h := md5.New()
-		io.WriteString(h, strconv.FormatInt(time.Now().Unix(), 10))
-		token := fmt.Sprintf("%x", h.Sum(nil))
+		token := NewToken()
 		tokenPool.put(token)
 		w.Write([]byte(fmt.Sprintf(`{"token":"%s"}`, token)))
+	}
+}
+
+func handleSavePoster(w http.ResponseWriter, r *http.Request) {
+	if r.Method == "POST" {
+		code := r.FormValue("code")
+		openId := GetOpenId(code)
+		if openId == "" {
+			w.WriteHeader(http.StatusUnauthorized)
+			return
+		}
+		_, _, err := r.FormFile("save-poster")
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			w.Write([]byte(fmt.Sprintf("上传失败 : %v", err)))
+			return
+		}
+
+		fhs := r.MultipartForm.File["save-poster"]
+		fh := fhs[0]
+		fileName := filepath.Base(fh.Filename)
+		if err := savePoster(fh); err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			w.Write([]byte( fmt.Sprintf("上传失败 : %v", err)))
+			return
+		}
+		w.Write([]byte(fileName))
 	}
 }
 

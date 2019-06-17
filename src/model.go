@@ -191,9 +191,9 @@ func (self *BMEvent) has(token string) (bminfo, bool) {
 }
 
 type Session struct {
-	Desc    string `yaml:"description"`
-	Limit   int    `yaml:"limit"`
-	EndTime string `yaml:"endtime"`
+	Desc    string `yaml:"description" json:"description"`
+	Limit   int    `yaml:"limit"       json:"limit"`
+	EndTime string `yaml:"endtime"     json:"endtime"`
 	number  int
 	expire  time.Time
 }
@@ -209,10 +209,10 @@ type Component struct {
 }
 
 type Event struct {
-	Event    string      `yaml:"event"`
-	Poster   string      `yaml:"poster"`
-	Sessions []Session   `yaml:"sessions"`
-	Form     []Component `yaml:"form"`
+	Event    string      `yaml:"event"    json:"event"`
+	Poster   string      `yaml:"poster"   json:"poster"`
+	Sessions []Session   `yaml:"sessions" json:"sessions"`
+	Form     []Component `yaml:"form"     json:"form"`
 }
 
 func (e Event) Compile() error {
@@ -275,12 +275,17 @@ func (self *BMEvent) Update(e Event) error {
 			return errors.New("sessions mismatch")
 		}
 	}
+	for i, v := range self.sessions {
+		if v.Limit > e.Sessions[i].Limit {
+			return errors.New("less limit number")
+		}
+	}
 
 	self.Lock()
 	defer self.Unlock()
 
 	//Only poster and limit, endtime attribute of session can be updated
-	//bm info and number of sessions will be reused
+	//bm info; number of sessions will be reused
 	self.poster = e.Poster
 	oldSessions := self.sessions
 	self.sessions = e.Sessions
@@ -318,18 +323,38 @@ type BMEventList struct {
 	events []*BMEvent
 }
 
-func (self *BMEventList) Reset() error {
+type EventList struct {
+	Events []Event `yaml:"events"`
+}
+
+func LoadEventList(eventList *EventList) error {
 	path := systembasePath + "/event.yaml"
 	setting, err := ioutil.ReadFile(path)
 	if err != nil {
 		return err
 	}
 
-	eventList := struct {
-		Events []Event `yaml:"events"`
-	}{}
+	err = yaml.Unmarshal(setting, eventList)
+	if err != nil {
+		return err
+	}
+	return nil
+}
 
-	err = yaml.Unmarshal(setting, &eventList)
+func SaveEventList(eventList EventList) error {
+	path := systembasePath + "/event.yaml"
+	setting, err := yaml.Marshal(eventList)
+	if err != nil {
+		return err
+	}
+
+	return ioutil.WriteFile(path, setting, 0666)
+}
+
+func (self *BMEventList) Reset() error {
+
+	eventList := EventList{}
+	err := LoadEventList(&eventList)
 	if err != nil {
 		return err
 	}

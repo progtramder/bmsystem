@@ -44,10 +44,12 @@ func main() {
 		mux.HandleFunc("/status", handleStatus)
 		mux.HandleFunc("/register-info", handleRegisterInfo)
 		mux.HandleFunc("/start-baoming", handleStartBaoming)
-		mux.HandleFunc("/admin", handleAdmin)
 		mux.HandleFunc("/develop", handleDevelop)
 		mux.HandleFunc("/save-album", handleSaveAlbum)
-		mux.HandleFunc("/reset", handleReset)
+		mux.HandleFunc("/save-poster", handleSavePoster)
+		mux.HandleFunc("/add-event", handleAddEvent)
+		mux.HandleFunc("/edit-event", handleEditEvent)
+		mux.HandleFunc("/remove-event", handleRemoveEvent)
 		mux.HandleFunc("/get-events", handlGetEvents)
 		srv := &http.Server{
 			Addr:        ":443",
