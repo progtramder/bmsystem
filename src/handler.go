@@ -231,6 +231,29 @@ func handleAddEvent(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func handleEventInformation(w http.ResponseWriter, r *http.Request) {
+	code := r.FormValue("code")
+	openId := GetOpenId(code)
+	if openId == "" {
+		w.WriteHeader(http.StatusUnauthorized)
+		return
+	}
+
+	event := r.FormValue("event")
+	bmEvent := bmEventList.GetEvent(event)
+	if bmEvent == nil {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+	eventObject := Event{}
+	eventObject.Event = bmEvent.name
+	eventObject.Poster = bmEvent.poster
+	eventObject.Sessions = bmEvent.sessions
+	eventObject.Form = bmEvent.form
+	data, _ := json.Marshal(&eventObject)
+	w.Write(data)
+}
+
 func handleEditEvent(w http.ResponseWriter, r *http.Request) {
 	code := r.FormValue("code")
 	openId := GetOpenId(code)

@@ -47,6 +47,7 @@ func main() {
 		mux.HandleFunc("/develop", handleDevelop)
 		mux.HandleFunc("/save-album", handleSaveAlbum)
 		mux.HandleFunc("/save-poster", handleSavePoster)
+		mux.HandleFunc("/event-information", handleEventInformation)
 		mux.HandleFunc("/add-event", handleAddEvent)
 		mux.HandleFunc("/edit-event", handleEditEvent)
 		mux.HandleFunc("/remove-event", handleRemoveEvent)
