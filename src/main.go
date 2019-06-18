@@ -27,10 +27,16 @@ func main() {
 		log.Fatal(err)
 	}
 
-	err = bmEventList.Reset()
+	eventList := EventList{}
+	err = LoadEventList(&eventList)
 	if err != nil {
 		log.Fatal(err)
 	}
+	err = bmEventList.Reset(eventList)
+	if err != nil {
+		log.Fatal(err)
+	}
+
 
 	//Starting http router, routing to acme challenge server and app iis
 	go func() {

@@ -217,17 +217,17 @@ func handleAddEvent(w http.ResponseWriter, r *http.Request) {
 	}
 	//Add new event object
 	eventList.Events = append(eventList.Events, event)
+	err = bmEventList.Reset(eventList)
+	if err != nil {
+		ColorRed("Fail to reset: " + err.Error())
+		w.WriteHeader(http.StatusNotAcceptable)
+		return
+	}
+
 	err = SaveEventList(eventList)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
-	}
-
-	//重新加载新的event配置文件
-	err = bmEventList.Reset()
-	if err != nil {
-		ColorRed("Fail to reset: " + err.Error())
-		w.WriteHeader(http.StatusNotAcceptable)
 	}
 }
 
@@ -286,17 +286,18 @@ func handleEditEvent(w http.ResponseWriter, r *http.Request) {
 			break
 		}
 	}
+
+	err = bmEventList.Reset(eventList)
+	if err != nil {
+		ColorRed("Fail to reset: " + err.Error())
+		w.WriteHeader(http.StatusNotAcceptable)
+		return
+	}
+
 	err = SaveEventList(eventList)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
-	}
-
-	//重新加载新的event配置文件
-	err = bmEventList.Reset()
-	if err != nil {
-		ColorRed("Fail to reset: " + err.Error())
-		w.WriteHeader(http.StatusNotAcceptable)
 	}
 }
 
@@ -328,17 +329,17 @@ func handleRemoveEvent(w http.ResponseWriter, r *http.Request) {
 			eventListTemp.Events = append(eventListTemp.Events, v)
 		}
 	}
+	err = bmEventList.Reset(eventListTemp)
+	if err != nil {
+		ColorRed("Fail to reset: " + err.Error())
+		w.WriteHeader(http.StatusNotAcceptable)
+		return
+	}
 
 	err = SaveEventList(eventListTemp)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
-	}
-
-	err = bmEventList.Reset()
-	if err != nil {
-		ColorRed("Fail to reset: " + err.Error())
-		w.WriteHeader(http.StatusNotAcceptable)
 	}
 }
 

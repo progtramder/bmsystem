@@ -351,13 +351,7 @@ func SaveEventList(eventList EventList) error {
 	return ioutil.WriteFile(path, setting, 0666)
 }
 
-func (self *BMEventList) Reset() error {
-
-	eventList := EventList{}
-	err := LoadEventList(&eventList)
-	if err != nil {
-		return err
-	}
+func (self *BMEventList) Reset(eventList EventList) error {
 
 	for _, v := range eventList.Events {
 		if err := v.Compile(); err != nil {
@@ -380,11 +374,11 @@ func (self *BMEventList) Reset() error {
 			self.events[i] = bmEvent
 		}
 	} else {
-		//hot reset, we reuse the old event object if it is not expired and
+		//hot reset, we reuse the old event object if it is started and not expired and
 		//it's name mathces that in config file
 		match := func(name string) int {
 			for i, v := range oldEvents {
-				if v.name == name && !v.Expired() {
+				if v.name == name && v.started && !v.Expired() {
 					return i
 				}
 			}
