@@ -1,7 +1,9 @@
 package main
 
 import (
+	"html/template"
 	"net/http"
+	"log"
 	"strings"
 )
 
@@ -28,7 +30,26 @@ func ReportServer(dir string) http.Handler {
 }
 
 func (self reportHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	http.FileServer(http.Dir(self)).ServeHTTP(w, r)
+
+	if checkAuth(r) {
+		http.FileServer(http.Dir(self)).ServeHTTP(w, r)
+		return
+	}
+
+	code := r.FormValue("code")
+	openId := GetOpenId(code)
+	if openId != "" {
+		http.FileServer(http.Dir(self)).ServeHTTP(w, r)
+		return
+	}
+
+	adminpage := systembasePath + "/webroot/html/admin.html"
+	t, err := template.ParseFiles(adminpage)
+	if err != nil {
+		log.Println(err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	t.Execute(w, "/report/" + r.URL.Path)
 }
-
-
